@@ -1,9 +1,11 @@
-using System.Collections.Generic;
+using System;
 using System.Linq;
 using UnityEngine;
-
+using Object = UnityEngine.Object;
 #if UNITY_EDITOR
 using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEditor.VersionControl;
 #endif
 
 // Author: JohannesMP (2018-08-12)
@@ -28,19 +30,19 @@ using UnityEditor;
 /// <summary>
 /// A wrapper that provides the means to safely serialize Scene Asset References.
 /// </summary>
-[System.Serializable]
+[Serializable]
 public class SceneReference : ISerializationCallbackReceiver
 {
 #if UNITY_EDITOR
     // What we use in editor to select the scene
-    [SerializeField] private Object sceneAsset = null;
-    bool IsValidSceneAsset
+    [SerializeField] private Object sceneAsset;
+    private bool IsValidSceneAsset
     {
         get
         {
-            if (sceneAsset == null)
-                return false;
-            return sceneAsset.GetType().Equals(typeof(SceneAsset));
+            if (!sceneAsset) return false;
+
+            return sceneAsset is SceneAsset;
         }
     }
 #endif
@@ -99,16 +101,12 @@ public class SceneReference : ISerializationCallbackReceiver
 #if UNITY_EDITOR
     private SceneAsset GetSceneAssetFromPath()
     {
-        if (string.IsNullOrEmpty(scenePath))
-            return null;
-        return AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath);
+        return string.IsNullOrEmpty(scenePath) ? null : AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath);
     }
 
     private string GetScenePathFromAsset()
     {
-        if (sceneAsset == null)
-            return string.Empty;
-        return AssetDatabase.GetAssetPath(sceneAsset);
+        return sceneAsset == null ? string.Empty : AssetDatabase.GetAssetPath(sceneAsset);
     }
 
     private void HandleBeforeSerialize()
@@ -117,10 +115,9 @@ public class SceneReference : ISerializationCallbackReceiver
         if (IsValidSceneAsset == false && string.IsNullOrEmpty(scenePath) == false)
         {
             sceneAsset = GetSceneAssetFromPath();
-            if (sceneAsset == null)
-                scenePath = string.Empty;
+            if (sceneAsset == null) scenePath = string.Empty;
 
-            UnityEditor.SceneManagement.EditorSceneManager.MarkAllScenesDirty();
+            EditorSceneManager.MarkAllScenesDirty();
         }
         // Asset takes precendence and overwrites Path
         else
@@ -133,20 +130,16 @@ public class SceneReference : ISerializationCallbackReceiver
     {
         EditorApplication.update -= HandleAfterDeserialize;
         // Asset is valid, don't do anything - Path will always be set based on it when it matters
-        if (IsValidSceneAsset)
-            return;
+        if (IsValidSceneAsset) return;
 
         // Asset is invalid but have path to try and recover from
-        if (string.IsNullOrEmpty(scenePath) == false)
-        {
-            sceneAsset = GetSceneAssetFromPath();
-            // No asset found, path was invalid. Make sure we don't carry over the old invalid path
-            if (sceneAsset == null)
-                scenePath = string.Empty;
+        if (string.IsNullOrEmpty(scenePath)) return;
 
-            if (Application.isPlaying == false)
-                UnityEditor.SceneManagement.EditorSceneManager.MarkAllScenesDirty();
-        }
+        sceneAsset = GetSceneAssetFromPath();
+        // No asset found, path was invalid. Make sure we don't carry over the old invalid path
+        if (!sceneAsset) scenePath = string.Empty;
+
+        if (!Application.isPlaying) EditorSceneManager.MarkAllScenesDirty();
     }
 #endif
 }
@@ -161,54 +154,81 @@ public class SceneReference : ISerializationCallbackReceiver
 public class SceneReferencePropertyDrawer : PropertyDrawer
 {
     // The exact name of the asset Object variable in the SceneReference object
-    const string sceneAssetPropertyString = "sceneAsset";
+    private const string sceneAssetPropertyString = "sceneAsset";
     // The exact name of  the scene Path variable in the SceneReference object
-    const string scenePathPropertyString = "scenePath";
+    private const string scenePathPropertyString = "scenePath";
 
-    static readonly RectOffset boxPadding = EditorStyles.helpBox.padding;
-    static readonly float padSize = 2f;
-    static readonly float lineHeight = EditorGUIUtility.singleLineHeight;
-    static readonly float paddedLine = lineHeight + padSize;
-    static readonly float footerHeight = 10f;
+    private static readonly RectOffset boxPadding = EditorStyles.helpBox.padding;
+
+
+    // Made these two const btw
+    private const float PAD_SIZE = 2f;
+    private const float FOOTER_HEIGHT = 10f;
+
+    private static readonly float lineHeight = EditorGUIUtility.singleLineHeight;
+    private static readonly float paddedLine = lineHeight + PAD_SIZE;
 
     /// <summary>
     /// Drawing the 'SceneReference' property
     /// </summary>
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
-        var sceneAssetProperty = GetSceneAssetProperty(property);
-
-        // Draw the Box Background
-        position.height -= footerHeight;
-        GUI.Box(EditorGUI.IndentedRect(position), GUIContent.none, EditorStyles.helpBox);
-        position = boxPadding.Remove(position);
-        position.height = lineHeight;
-
-        // Draw the main Object field
-        label.tooltip = "The actual Scene Asset reference.\nOn serialize this is also stored as the asset's path.";
-
+        // Move this up
         EditorGUI.BeginProperty(position, GUIContent.none, property);
-        EditorGUI.BeginChangeCheck();
-        int sceneControlID = GUIUtility.GetControlID(FocusType.Passive);
-        var selectedObject = EditorGUI.ObjectField(position, label, sceneAssetProperty.objectReferenceValue, typeof(SceneAsset), false);
-        BuildUtils.BuildScene buildScene = BuildUtils.GetBuildScene(selectedObject);
-
-        if (EditorGUI.EndChangeCheck())
         {
-            sceneAssetProperty.objectReferenceValue = selectedObject;
+            // Here we add the foldout using a single line height, the label and change
+            // the value of property.isExpanded
+            property.isExpanded = EditorGUI.Foldout(new Rect(position.x, position.y, position.width, lineHeight), property.isExpanded, label);
 
-            // If no valid scene asset was selected, reset the stored path accordingly
-            if (buildScene.scene == null)
-                GetScenePathProperty(property).stringValue = string.Empty;
+            // Now you want to draw the content only if you unfold this property
+            if (property.isExpanded)
+            {
+                // Optional: Indent the content
+                //EditorGUI.indentLevel++;
+                //{
+
+                // reduce the height by one line and move the content one line below
+                position.height -= lineHeight;
+                position.y += lineHeight;
+
+                var sceneAssetProperty = GetSceneAssetProperty(property);
+
+                // Draw the Box Background
+                position.height -= FOOTER_HEIGHT;
+                GUI.Box(EditorGUI.IndentedRect(position), GUIContent.none, EditorStyles.helpBox);
+                position = boxPadding.Remove(position);
+                position.height = lineHeight;
+
+                // Draw the main Object field
+                label.tooltip = "The actual Scene Asset reference.\nOn serialize this is also stored as the asset's path.";
+
+
+                var sceneControlID = GUIUtility.GetControlID(FocusType.Passive);
+                EditorGUI.BeginChangeCheck();
+                {
+                    // removed the label here since we already have it in the foldout before
+                    sceneAssetProperty.objectReferenceValue = EditorGUI.ObjectField(position, sceneAssetProperty.objectReferenceValue, typeof(SceneAsset), false);
+                }
+                var buildScene = BuildUtils.GetBuildScene(sceneAssetProperty.objectReferenceValue);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    // If no valid scene asset was selected, reset the stored path accordingly
+                    if (buildScene.scene == null) GetScenePathProperty(property).stringValue = string.Empty;
+                }
+
+                position.y += paddedLine;
+
+                if (!buildScene.assetGUID.Empty())
+                {
+                    // Draw the Build Settings Info of the selected Scene
+                    DrawSceneInfoGUI(position, buildScene, sceneControlID + 1);
+                }
+
+                // Optional: If enabled before reset the indentlevel
+                //}
+                //EditorGUI.indentLevel--;
+            }
         }
-        position.y += paddedLine;
-
-        if (buildScene.assetGUID.Empty() == false)
-        {
-            // Draw the Build Settings Info of the selected Scene
-            DrawSceneInfoGUI(position, buildScene, sceneControlID + 1);
-        }
-
         EditorGUI.EndProperty();
     }
 
@@ -217,12 +237,15 @@ public class SceneReferencePropertyDrawer : PropertyDrawer
     /// </summary>
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
     {
-        int lines = 2;
-        SerializedProperty sceneAssetProperty = GetSceneAssetProperty(property);
-        if (sceneAssetProperty.objectReferenceValue == null)
-            lines = 1;
+        var sceneAssetProperty = GetSceneAssetProperty(property);
+        // Add an additional line and check if property.isExpanded
+        var lines = property.isExpanded ? sceneAssetProperty.objectReferenceValue != null ? 3 : 2 : 1;
+        // If this oneliner is confusing you - it does the same as
+        //var line = 3; // Fully expanded and with info
+        //if(sceneAssetProperty.objectReferenceValue == null) line = 2;
+        //if(!property.isExpanded) line = 1;
 
-        return boxPadding.vertical + lineHeight * lines + padSize * (lines - 1) + footerHeight;
+        return boxPadding.vertical + lineHeight * lines + PAD_SIZE * (lines - 1) + FOOTER_HEIGHT;
     }
 
     /// <summary>
@@ -230,12 +253,12 @@ public class SceneReferencePropertyDrawer : PropertyDrawer
     /// </summary>
     private void DrawSceneInfoGUI(Rect position, BuildUtils.BuildScene buildScene, int sceneControlID)
     {
-        bool readOnly = BuildUtils.IsReadOnly();
-        string readOnlyWarning = readOnly ? "\n\nWARNING: Build Settings is not checked out and so cannot be modified." : "";
+        var readOnly = BuildUtils.IsReadOnly();
+        var readOnlyWarning = readOnly ? "\n\nWARNING: Build Settings is not checked out and so cannot be modified." : "";
 
         // Label Prefix
-        GUIContent iconContent = new GUIContent();
-        GUIContent labelContent = new GUIContent();
+        var iconContent = new GUIContent();
+        var labelContent = new GUIContent();
 
         // Missing from build scenes
         if (buildScene.buildIndex == -1)
@@ -262,9 +285,9 @@ public class SceneReferencePropertyDrawer : PropertyDrawer
         // Left status label
         using (new EditorGUI.DisabledScope(readOnly))
         {
-            Rect labelRect = DrawUtils.GetLabelRect(position);
-            Rect iconRect = labelRect;
-            iconRect.width = iconContent.image.width + padSize;
+            var labelRect = DrawUtils.GetLabelRect(position);
+            var iconRect = labelRect;
+            iconRect.width = iconContent.image.width + PAD_SIZE;
             labelRect.width -= iconRect.width;
             labelRect.x += iconRect.width;
             EditorGUI.PrefixLabel(iconRect, sceneControlID, iconContent);
@@ -272,17 +295,17 @@ public class SceneReferencePropertyDrawer : PropertyDrawer
         }
 
         // Right context buttons
-        Rect buttonRect = DrawUtils.GetFieldRect(position);
+        var buttonRect = DrawUtils.GetFieldRect(position);
         buttonRect.width = (buttonRect.width) / 3;
 
-        string tooltipMsg = "";
+        var tooltipMsg = "";
         using (new EditorGUI.DisabledScope(readOnly))
         {
             // NOT in build settings
             if (buildScene.buildIndex == -1)
             {
                 buttonRect.width *= 2;
-                int addIndex = EditorBuildSettings.scenes.Length;
+                var addIndex = EditorBuildSettings.scenes.Length;
                 tooltipMsg = "Add this scene to build settings. It will be appended to the end of the build scenes as buildIndex: " + addIndex + "." + readOnlyWarning;
                 if (DrawUtils.ButtonHelper(buttonRect, "Add...", "Add (buildIndex " + addIndex + ")", EditorStyles.miniButtonLeft, tooltipMsg))
                     BuildUtils.AddBuildScene(buildScene);
@@ -292,8 +315,8 @@ public class SceneReferencePropertyDrawer : PropertyDrawer
             // In build settings
             else
             {
-                bool isEnabled = buildScene.scene.enabled;
-                string stateString = isEnabled ? "Disable" : "Enable";
+                var isEnabled = buildScene.scene.enabled;
+                var stateString = isEnabled ? "Disable" : "Enable";
                 tooltipMsg = stateString + " this scene in build settings.\n" + (isEnabled ? "It will no longer be included in builds" : "It will be included in builds") + "." + readOnlyWarning;
 
                 if (DrawUtils.ButtonHelper(buttonRect, stateString, stateString + " In Build", EditorStyles.miniButtonLeft, tooltipMsg))
@@ -316,12 +339,12 @@ public class SceneReferencePropertyDrawer : PropertyDrawer
 
     }
 
-    static SerializedProperty GetSceneAssetProperty(SerializedProperty property)
+    private static SerializedProperty GetSceneAssetProperty(SerializedProperty property)
     {
         return property.FindPropertyRelative(sceneAssetPropertyString);
     }
 
-    static SerializedProperty GetScenePathProperty(SerializedProperty property)
+    private static SerializedProperty GetScenePathProperty(SerializedProperty property)
     {
         return property.FindPropertyRelative(scenePathPropertyString);
     }
@@ -331,14 +354,12 @@ public class SceneReferencePropertyDrawer : PropertyDrawer
         /// <summary>
         /// Draw a GUI button, choosing between a short and a long button text based on if it fits
         /// </summary>
-        static public bool ButtonHelper(Rect position, string msgShort, string msgLong, GUIStyle style, string tooltip = null)
+        public static bool ButtonHelper(Rect position, string msgShort, string msgLong, GUIStyle style, string tooltip = null)
         {
-            GUIContent content = new GUIContent(msgLong);
-            content.tooltip = tooltip;
+            var content = new GUIContent(msgLong) { tooltip = tooltip };
 
-            float longWidth = style.CalcSize(content).x;
-            if (longWidth > position.width)
-                content.text = msgShort;
+            var longWidth = style.CalcSize(content).x;
+            if (longWidth > position.width) content.text = msgShort;
 
             return GUI.Button(position, content, style);
         }
@@ -346,7 +367,7 @@ public class SceneReferencePropertyDrawer : PropertyDrawer
         /// <summary>
         /// Given a position rect, get its field portion
         /// </summary>
-        static public Rect GetFieldRect(Rect position)
+        public static Rect GetFieldRect(Rect position)
         {
             position.width -= EditorGUIUtility.labelWidth;
             position.x += EditorGUIUtility.labelWidth;
@@ -355,9 +376,9 @@ public class SceneReferencePropertyDrawer : PropertyDrawer
         /// <summary>
         /// Given a position rect, get its label portion
         /// </summary>
-        static public Rect GetLabelRect(Rect position)
+        public static Rect GetLabelRect(Rect position)
         {
-            position.width = EditorGUIUtility.labelWidth - padSize;
+            position.width = EditorGUIUtility.labelWidth - PAD_SIZE;
             return position;
         }
     }
@@ -365,13 +386,13 @@ public class SceneReferencePropertyDrawer : PropertyDrawer
     /// <summary>
     /// Various BuildSettings interactions
     /// </summary>
-    static private class BuildUtils
+    private static class BuildUtils
     {
         // time in seconds that we have to wait before we query again when IsReadOnly() is called.
         public static float minCheckWait = 3;
 
-        static float lastTimeChecked = 0;
-        static bool cachedReadonlyVal = true;
+        private static float lastTimeChecked;
+        private static bool cachedReadonlyVal = true;
 
         /// <summary>
         /// A small container for tracking scene data BuildSettings
@@ -388,16 +409,15 @@ public class SceneReferencePropertyDrawer : PropertyDrawer
         /// Check if the build settings asset is readonly.
         /// Caches value and only queries state a max of every 'minCheckWait' seconds.
         /// </summary>
-        static public bool IsReadOnly()
+        public static bool IsReadOnly()
         {
-            float curTime = Time.realtimeSinceStartup;
-            float timeSinceLastCheck = curTime - lastTimeChecked;
+            var curTime = Time.realtimeSinceStartup;
+            var timeSinceLastCheck = curTime - lastTimeChecked;
 
-            if (timeSinceLastCheck > minCheckWait)
-            {
-                lastTimeChecked = curTime;
-                cachedReadonlyVal = QueryBuildSettingsStatus();
-            }
+            if (!(timeSinceLastCheck > minCheckWait)) return cachedReadonlyVal;
+
+            lastTimeChecked = curTime;
+            cachedReadonlyVal = QueryBuildSettingsStatus();
 
             return cachedReadonlyVal;
         }
@@ -406,60 +426,52 @@ public class SceneReferencePropertyDrawer : PropertyDrawer
         /// A blocking call to the Version Control system to see if the build settings asset is readonly.
         /// Use BuildSettingsIsReadOnly for version that caches the value for better responsivenes.
         /// </summary>
-        static private bool QueryBuildSettingsStatus()
+        private static bool QueryBuildSettingsStatus()
         {
             // If no version control provider, assume not readonly
-            if (UnityEditor.VersionControl.Provider.enabled == false)
-                return false;
+            if (!Provider.enabled) return false;
 
             // If we cannot checkout, then assume we are not readonly
-            if (UnityEditor.VersionControl.Provider.hasCheckoutSupport == false)
-                return false;
+            if (!Provider.hasCheckoutSupport) return false;
 
             //// If offline (and are using a version control provider that requires checkout) we cannot edit.
             //if (UnityEditor.VersionControl.Provider.onlineState == UnityEditor.VersionControl.OnlineState.Offline)
             //    return true;
 
             // Try to get status for file
-            var status = UnityEditor.VersionControl.Provider.Status("ProjectSettings/EditorBuildSettings.asset", false);
+            var status = Provider.Status("ProjectSettings/EditorBuildSettings.asset", false);
             status.Wait();
 
             // If no status listed we can edit
-            if (status.assetList == null || status.assetList.Count != 1)
-                return true;
+            if (status.assetList == null || status.assetList.Count != 1) return true;
 
             // If is checked out, we can edit
-            if (status.assetList[0].IsState(UnityEditor.VersionControl.Asset.States.CheckedOutLocal))
-                return false;
-
-            return true;
+            return !status.assetList[0].IsState(Asset.States.CheckedOutLocal);
         }
 
         /// <summary>
         /// For a given Scene Asset object reference, extract its build settings data, including buildIndex.
         /// </summary>
-        static public BuildScene GetBuildScene(Object sceneObject)
+        public static BuildScene GetBuildScene(Object sceneObject)
         {
-            BuildScene entry = new BuildScene()
+            var entry = new BuildScene
             {
                 buildIndex = -1,
                 assetGUID = new GUID(string.Empty)
             };
 
-            if (sceneObject as SceneAsset == null)
-                return entry;
+            if (sceneObject as SceneAsset == null) return entry;
 
             entry.assetPath = AssetDatabase.GetAssetPath(sceneObject);
             entry.assetGUID = new GUID(AssetDatabase.AssetPathToGUID(entry.assetPath));
 
-            for (int index = 0; index < EditorBuildSettings.scenes.Length; ++index)
+            for (var index = 0; index < EditorBuildSettings.scenes.Length; ++index)
             {
-                if (entry.assetGUID.Equals(EditorBuildSettings.scenes[index].guid))
-                {
-                    entry.scene = EditorBuildSettings.scenes[index];
-                    entry.buildIndex = index;
-                    return entry;
-                }
+                if (!entry.assetGUID.Equals(EditorBuildSettings.scenes[index].guid)) continue;
+
+                entry.scene = EditorBuildSettings.scenes[index];
+                entry.buildIndex = index;
+                return entry;
             }
 
             return entry;
@@ -468,31 +480,27 @@ public class SceneReferencePropertyDrawer : PropertyDrawer
         /// <summary>
         /// Enable/Disable a given scene in the buildSettings
         /// </summary>
-        static public void SetBuildSceneState(BuildScene buildScene, bool enabled)
+        public static void SetBuildSceneState(BuildScene buildScene, bool enabled)
         {
-            bool modified = false;
-            EditorBuildSettingsScene[] scenesToModify = EditorBuildSettings.scenes;
-            foreach (var curScene in scenesToModify)
+            var modified = false;
+            var scenesToModify = EditorBuildSettings.scenes;
+            foreach (var curScene in scenesToModify.Where(curScene => curScene.guid.Equals(buildScene.assetGUID)))
             {
-                if (curScene.guid.Equals(buildScene.assetGUID))
-                {
-                    curScene.enabled = enabled;
-                    modified = true;
-                    break;
-                }
+                curScene.enabled = enabled;
+                modified = true;
+                break;
             }
-            if (modified)
-                EditorBuildSettings.scenes = scenesToModify;
+            if (modified) EditorBuildSettings.scenes = scenesToModify;
         }
 
         /// <summary>
         /// Display Dialog to add a scene to build settings
         /// </summary>
-        static public void AddBuildScene(BuildScene buildScene, bool force = false, bool enabled = true)
+        public static void AddBuildScene(BuildScene buildScene, bool force = false, bool enabled = true)
         {
             if (force == false)
             {
-                int selection = EditorUtility.DisplayDialogComplex(
+                var selection = EditorUtility.DisplayDialogComplex(
                     "Add Scene To Build",
                     "You are about to add scene at " + buildScene.assetPath + " To the Build Settings.",
                     "Add as Enabled",       // option 0
@@ -508,13 +516,13 @@ public class SceneReferencePropertyDrawer : PropertyDrawer
                         enabled = false;
                         break;
                     default:
-                    case 2: // cancel
+                        //case 2: // cancel
                         return;
                 }
             }
 
-            EditorBuildSettingsScene newScene = new EditorBuildSettingsScene(buildScene.assetGUID, enabled);
-            List<EditorBuildSettingsScene> tempScenes = EditorBuildSettings.scenes.ToList();
+            var newScene = new EditorBuildSettingsScene(buildScene.assetGUID, enabled);
+            var tempScenes = EditorBuildSettings.scenes.ToList();
             tempScenes.Add(newScene);
             EditorBuildSettings.scenes = tempScenes.ToArray();
         }
@@ -522,20 +530,18 @@ public class SceneReferencePropertyDrawer : PropertyDrawer
         /// <summary>
         /// Display Dialog to remove a scene from build settings (or just disable it)
         /// </summary>
-        static public void RemoveBuildScene(BuildScene buildScene, bool force = false)
+        public static void RemoveBuildScene(BuildScene buildScene, bool force = false)
         {
-            bool onlyDisable = false;
+            var onlyDisable = false;
             if (force == false)
             {
-                int selection = -1;
+                var selection = -1;
 
-                string title = "Remove Scene From Build";
-                string details = string.Format("You are about to remove the following scene from build settings:\n    {0}\n    buildIndex: {1}\n\n{2}",
-                                buildScene.assetPath, buildScene.buildIndex,
-                                "This will modify build settings, but the scene asset will remain untouched.");
-                string confirm = "Remove From Build";
-                string alt = "Just Disable";
-                string cancel = "Cancel (do nothing)";
+                var title = "Remove Scene From Build";
+                var details = $"You are about to remove the following scene from build settings:\n    {buildScene.assetPath}\n    buildIndex: {buildScene.buildIndex}\n\nThis will modify build settings, but the scene asset will remain untouched.";
+                var confirm = "Remove From Build";
+                var alt = "Just Disable";
+                var cancel = "Cancel (do nothing)";
 
                 if (buildScene.scene.enabled)
                 {
@@ -555,7 +561,7 @@ public class SceneReferencePropertyDrawer : PropertyDrawer
                         onlyDisable = true;
                         break;
                     default:
-                    case 2: // cancel
+                        //case 2: // cancel
                         return;
                 }
             }
@@ -568,7 +574,7 @@ public class SceneReferencePropertyDrawer : PropertyDrawer
             // User chose to fully remove the scene from build settings
             else
             {
-                List<EditorBuildSettingsScene> tempScenes = EditorBuildSettings.scenes.ToList();
+                var tempScenes = EditorBuildSettings.scenes.ToList();
                 tempScenes.RemoveAll(scene => scene.guid.Equals(buildScene.assetGUID));
                 EditorBuildSettings.scenes = tempScenes.ToArray();
             }
@@ -577,7 +583,7 @@ public class SceneReferencePropertyDrawer : PropertyDrawer
         /// <summary>
         /// Open the default Unity Build Settings window
         /// </summary>
-        static public void OpenBuildSettings()
+        public static void OpenBuildSettings()
         {
             EditorWindow.GetWindow(typeof(BuildPlayerWindow));
         }
