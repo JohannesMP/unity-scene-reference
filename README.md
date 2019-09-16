@@ -1,5 +1,7 @@
 This repository has UPM support. Use https://github.com/mob-sakai/UpmGitExtension for installing it directly in Unity.
 
+Original author is [JohannesMP](https://gist.github.com/JohannesMP/ec7d3f0bcf167dab3d0d3bb480e0e07b)
+
 ----
 
 What is this?
