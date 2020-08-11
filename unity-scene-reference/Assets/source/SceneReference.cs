@@ -465,11 +465,12 @@ public class SceneReferencePropertyDrawer : PropertyDrawer
             entry.assetPath = AssetDatabase.GetAssetPath(sceneObject);
             entry.assetGUID = new GUID(AssetDatabase.AssetPathToGUID(entry.assetPath));
 
-            for (var index = 0; index < EditorBuildSettings.scenes.Length; ++index)
+            var scenes = EditorBuildSettings.scenes;
+            for (var index = 0; index < scenes.Length; ++index)
             {
-                if (!entry.assetGUID.Equals(EditorBuildSettings.scenes[index].guid)) continue;
+                if (!entry.assetGUID.Equals(scenes[index].guid)) continue;
 
-                entry.scene = EditorBuildSettings.scenes[index];
+                entry.scene = scenes[index];
                 entry.buildIndex = index;
                 return entry;
             }
