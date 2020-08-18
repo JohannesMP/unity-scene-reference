@@ -11,20 +11,20 @@ using UnityEditor.VersionControl;
 // Author: JohannesMP (2018-08-12)
 //
 // A wrapper that provides the means to safely serialize Scene Asset References.
-// 
+//
 // Internally we serialize an Object to the SceneAsset which only exists at editor time.
 // Any time the object is serialized, we store the path provided by this Asset (assuming it was valid).
-// 
+//
 // This means that, come build time, the string path of the scene asset is always already stored, which if 
 // the scene was added to the build settings means it can be loaded.
-// 
+//
 // It is up to the user to ensure the scene exists in the build settings so it is loadable at runtime.
 // To help with this, a custom PropertyDrawer displays the scene build settings state.
-// 
-// Known issues:
-//     -   When reverting back to a prefab which has the asset stored as null, Unity will show the property 
-//         as modified despite having just reverted. This only happens the fist time, and reverting again 
-//         fixes it. Under the hood the state is still always valid, and serialized correctly regardless.
+//
+//  Known issues:
+// - When reverting back to a prefab which has the asset stored as null, Unity will show the property 
+// as modified despite having just reverted. This only happens on the fist time, and reverting again fix it. 
+// Under the hood the state is still always valid and serialized correctly regardless.
 
 
 /// <summary>
@@ -155,7 +155,7 @@ public class SceneReferencePropertyDrawer : PropertyDrawer
 {
     // The exact name of the asset Object variable in the SceneReference object
     private const string sceneAssetPropertyString = "sceneAsset";
-    // The exact name of  the scene Path variable in the SceneReference object
+    // The exact name of the scene Path variable in the SceneReference object
     private const string scenePathPropertyString = "scenePath";
 
     private static readonly RectOffset boxPadding = EditorStyles.helpBox.padding;
@@ -465,11 +465,12 @@ public class SceneReferencePropertyDrawer : PropertyDrawer
             entry.assetPath = AssetDatabase.GetAssetPath(sceneObject);
             entry.assetGUID = new GUID(AssetDatabase.AssetPathToGUID(entry.assetPath));
 
-            for (var index = 0; index < EditorBuildSettings.scenes.Length; ++index)
+            var scenes = EditorBuildSettings.scenes;
+            for (var index = 0; index < scenes.Length; ++index)
             {
-                if (!entry.assetGUID.Equals(EditorBuildSettings.scenes[index].guid)) continue;
+                if (!entry.assetGUID.Equals(scenes[index].guid)) continue;
 
-                entry.scene = EditorBuildSettings.scenes[index];
+                entry.scene = scenes[index];
                 entry.buildIndex = index;
                 return entry;
             }

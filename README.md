@@ -30,9 +30,9 @@ Key features
 ---
 
 - Custom PropertyDrawer that displays the current Build Settings status, including [BuildIndex](https://docs.unity3d.com/ScriptReference/SceneManagement.Scene-buildIndex.html) and convenient buttons for managing it with destructive action confirmation dialogues.
-- If (and only if) the serialized Object reference is invalid but path is still valid (for example if someone merged incorrectly) will recover object using path.
+- If (and only if) the serialized Object reference is invalid but the path is still valid (for example if someone merged incorrectly) will recover object using path.
 - Buttons collapse to smaller text if full text cannot be displayed.<br>![][3]
-- Includes detailed tooltips and respects Version Control if build settings is not checked out (tested with [Perforce](https://docs.unity3d.com/Manual/perForceIntegration.html)).<br>![][4]
+- Include detailed tooltips and respects Version Control if build settings are not checked out (tested with [Perforce](https://docs.unity3d.com/Manual/perForceIntegration.html)).<br>![][4]
 - It's a single drop-in script. You're welcome to split the Editor-only PropertyDrawer and helpers into their own Editor scripts if you'd like, just for convenience I've put it all in one self-contained file here.
 
 ----
