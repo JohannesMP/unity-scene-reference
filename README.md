@@ -1,6 +1,12 @@
-This repository has UPM support. Use https://github.com/mob-sakai/UpmGitExtension for installing it directly in Unity.
+[![openupm](https://img.shields.io/npm/v/com.johannesmp.unityscenereference?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.johannesmp.unityscenereference/)
 
-Original author is [JohannesMP](https://gist.github.com/JohannesMP/ec7d3f0bcf167dab3d0d3bb480e0e07b)
+This repository has UPM support. You can install this plugin to your project using [OpenUPM](https://openupm.com/packages/com.johannesmp.unityscenereference/):
+```
+npm install -g openupm-cli
+openupm add com.johannesmp.unityscenereference
+```
+
+Original author is [JohannesMP](https://gist.github.com/JohannesMP/ec7d3f0bcf167dab3d0d3bb480e0e07b). Give them some love for creating this amazing plugin.
 
 ----
 
