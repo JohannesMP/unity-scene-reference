@@ -1,7 +1,7 @@
 {
-    "dependencies": {},
-    "description": "[Unity3D] A Reliable, user-friendly way to reference SceneAssets by script.",
-    "displayName": "Unity Scene Reference",
-    "name": "com.johannesmp.unityscenereference",
-    "version": "1.1.0"
+	"dependencies": {},
+	"description": "[Unity3D] A Reliable, user-friendly way to reference SceneAssets by script.",
+	"displayName": "Unity Scene Reference",
+	"name": "com.johannesmp.unityscenereference",
+	"version": "1.1.1"
 }
