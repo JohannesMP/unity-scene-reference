@@ -74,6 +74,14 @@ public class SceneReference : ISerializationCallbackReceiver
         }
     }
 
+    public int BuildIndex
+    {
+        get
+        {
+            return UnityEngine.SceneManagement.SceneUtility.GetBuildIndexByScenePath(scenePath);
+        }
+    }
+
     public static implicit operator string(SceneReference sceneReference)
     {
         return sceneReference.ScenePath;
