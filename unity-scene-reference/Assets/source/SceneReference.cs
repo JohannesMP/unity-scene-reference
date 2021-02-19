@@ -173,6 +173,14 @@ public class SceneReferencePropertyDrawer : PropertyDrawer
     /// </summary>
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
+        if (property.serializedObject.isEditingMultipleObjects)
+        {
+            var wasEnabled = GUI.enabled;
+            GUI.enabled = false;
+            EditorGUI.TextField(position, new GUIContent(property.displayName), "Multi-editing not supported");
+            GUI.enabled = wasEnabled;
+            return;
+        }
         // Move this up
         EditorGUI.BeginProperty(position, GUIContent.none, property);
         {
@@ -237,6 +245,8 @@ public class SceneReferencePropertyDrawer : PropertyDrawer
     /// </summary>
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
     {
+        if (property.serializedObject.isEditingMultipleObjects)
+            return base.GetPropertyHeight(property, label);
         var sceneAssetProperty = GetSceneAssetProperty(property);
         // Add an additional line and check if property.isExpanded
         var lines = property.isExpanded ? sceneAssetProperty.objectReferenceValue != null ? 3 : 2 : 1;
