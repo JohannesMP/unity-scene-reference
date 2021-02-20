@@ -6,6 +6,7 @@ using Object = UnityEngine.Object;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEditor.VersionControl;
+using UnityEngine.SceneManagement;
 #endif
 
 // Author: JohannesMP (2018-08-12)
@@ -50,6 +51,8 @@ public class SceneReference : ISerializationCallbackReceiver
     // This should only ever be set during serialization/deserialization!
     [SerializeField]
     private string scenePath = string.Empty;
+    [SerializeField]
+    private int buildIndex = -1;
 
     // Use this when you want to actually have the scene path
     public string ScenePath
@@ -70,6 +73,7 @@ public class SceneReference : ISerializationCallbackReceiver
             scenePath = value;
 #if UNITY_EDITOR
             sceneAsset = GetSceneAssetFromPath();
+            buildIndex = SceneUtility.GetBuildIndexByScenePath(scenePath);
 #endif
         }
     }
@@ -78,7 +82,11 @@ public class SceneReference : ISerializationCallbackReceiver
     {
         get
         {
-            return UnityEngine.SceneManagement.SceneUtility.GetBuildIndexByScenePath(scenePath);
+#if UNITY_EDITOR
+            return SceneUtility.GetBuildIndexByScenePath(ScenePath);
+#else
+            return buildIndex;
+#endif
         }
     }
 
@@ -103,8 +111,6 @@ public class SceneReference : ISerializationCallbackReceiver
         EditorApplication.update += HandleAfterDeserialize;
 #endif
     }
-
-
 
 #if UNITY_EDITOR
     private SceneAsset GetSceneAssetFromPath()
@@ -132,6 +138,8 @@ public class SceneReference : ISerializationCallbackReceiver
         {
             scenePath = GetScenePathFromAsset();
         }
+
+        buildIndex = SceneUtility.GetBuildIndexByScenePath(scenePath);
     }
 
     private void HandleAfterDeserialize()
@@ -145,7 +153,11 @@ public class SceneReference : ISerializationCallbackReceiver
 
         sceneAsset = GetSceneAssetFromPath();
         // No asset found, path was invalid. Make sure we don't carry over the old invalid path
-        if (!sceneAsset) scenePath = string.Empty;
+        if (!sceneAsset)
+        {
+            scenePath = string.Empty;
+            buildIndex = -1;
+        }
 
         if (!Application.isPlaying) EditorSceneManager.MarkAllScenesDirty();
     }
