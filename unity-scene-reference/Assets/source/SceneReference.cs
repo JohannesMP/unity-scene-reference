@@ -35,16 +35,13 @@ public class SceneReference : ISerializationCallbackReceiver
 {
 #if UNITY_EDITOR
     // What we use in editor to select the scene
-    [SerializeField] private Object sceneAsset;
-    private bool IsValidSceneAsset
-    {
-        get
-        {
-            if (!sceneAsset) return false;
+    [SerializeField] private SceneAsset sceneAsset;
 
-            return sceneAsset is SceneAsset;
-        }
-    }
+#pragma warning disable 0414 // Never used warning - will be used by SerializedProperty.
+	// Used to dirtify the data when needed upon displaying in the inspector.
+	// Otherwise the user will never get the changes to save (unless he changes any other field of the object).
+    [SerializeField] private bool isDirty;
+#pragma warning restore 0414
 #endif
 
     // This should only ever be set during serialization/deserialization!
@@ -112,17 +109,25 @@ public class SceneReference : ISerializationCallbackReceiver
     private void HandleBeforeSerialize()
     {
         // Asset is invalid but have Path to try and recover from
-        if (IsValidSceneAsset == false && string.IsNullOrEmpty(scenePath) == false)
-        {
-            sceneAsset = GetSceneAssetFromPath();
-            if (sceneAsset == null) scenePath = string.Empty;
+        if (sceneAsset == null && string.IsNullOrEmpty(scenePath) == false)
+		{
+            SceneAsset foundAsset = GetSceneAssetFromPath();
 
-            EditorSceneManager.MarkAllScenesDirty();
+            if (foundAsset) {
+                sceneAsset = foundAsset;
+                isDirty = true;
+                EditorSceneManager.MarkAllScenesDirty();
+            }
         }
         // Asset takes precendence and overwrites Path
         else
-        {
-            scenePath = GetScenePathFromAsset();
+		{
+            string foundPath = GetScenePathFromAsset();
+            if (string.IsNullOrEmpty(foundPath) == false && foundPath != scenePath)
+			{
+                scenePath = foundPath;
+                isDirty = true;
+            }
         }
     }
 
@@ -130,16 +135,19 @@ public class SceneReference : ISerializationCallbackReceiver
     {
         EditorApplication.update -= HandleAfterDeserialize;
         // Asset is valid, don't do anything - Path will always be set based on it when it matters
-        if (IsValidSceneAsset) return;
+        if (sceneAsset) return;
 
         // Asset is invalid but have path to try and recover from
         if (string.IsNullOrEmpty(scenePath)) return;
 
-        sceneAsset = GetSceneAssetFromPath();
-        // No asset found, path was invalid. Make sure we don't carry over the old invalid path
-        if (!sceneAsset) scenePath = string.Empty;
+        SceneAsset foundAsset = GetSceneAssetFromPath();
 
-        if (!Application.isPlaying) EditorSceneManager.MarkAllScenesDirty();
+        if (foundAsset)
+		{
+            sceneAsset = foundAsset;
+            isDirty = true;
+            if (!Application.isPlaying) EditorSceneManager.MarkAllScenesDirty();
+        }
     }
 #endif
 }
@@ -157,6 +165,8 @@ public class SceneReferencePropertyDrawer : PropertyDrawer
     private const string sceneAssetPropertyString = "sceneAsset";
     // The exact name of the scene Path variable in the SceneReference object
     private const string scenePathPropertyString = "scenePath";
+    // The exact name of the isDirty variable in the SceneReference object
+    private const string isDirtyPropertyString = "isDirty";
 
     private static readonly RectOffset boxPadding = EditorStyles.helpBox.padding;
 
@@ -173,6 +183,13 @@ public class SceneReferencePropertyDrawer : PropertyDrawer
     /// </summary>
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
+        var isDirtyProperty = property.FindPropertyRelative(isDirtyPropertyString);
+        if (isDirtyProperty.boolValue) {
+            isDirtyProperty.boolValue = false;
+            // This will force change in the property and make it dirty.
+			// After the user saves, he'll actually see the changed changes and commit them.
+        }
+
         // Move this up
         EditorGUI.BeginProperty(position, GUIContent.none, property);
         {
@@ -207,7 +224,7 @@ public class SceneReferencePropertyDrawer : PropertyDrawer
                 EditorGUI.BeginChangeCheck();
                 {
                     // removed the label here since we already have it in the foldout before
-                    sceneAssetProperty.objectReferenceValue = EditorGUI.ObjectField(position, sceneAssetProperty.objectReferenceValue, typeof(SceneAsset), false);
+                    EditorGUI.PropertyField(position, sceneAssetProperty, new GUIContent());
                 }
                 var buildScene = BuildUtils.GetBuildScene(sceneAssetProperty.objectReferenceValue);
                 if (EditorGUI.EndChangeCheck())
