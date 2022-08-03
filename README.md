@@ -1,5 +1,5 @@
 Disclaimer (2022)
-----------------
+===
 
 This project is no longer being actively maintained, and should be considered archived.
 
@@ -9,7 +9,7 @@ Here are some relevant projects to check out:
 - **[Eflatun.SceneReference](https://github.com/starikcetin/Eflatun.SceneReference)** by *[starikcetin](https://github.com/starikcetin)*
 
 
-------------------------------
+---
 
 <br />
 
@@ -22,7 +22,7 @@ npm install -g openupm-cli
 openupm add com.johannesmp.unityscenereference
 ```
 
-----
+---
 
 What is this?
 ---
@@ -55,7 +55,7 @@ Key features
 - Include detailed tooltips and respects Version Control if build settings are not checked out (tested with [Perforce](https://docs.unity3d.com/Manual/perForceIntegration.html)).<br>![][4]
 - It's a single drop-in script. You're welcome to split the Editor-only PropertyDrawer and helpers into their own Editor scripts if you'd like, just for convenience I've put it all in one self-contained file here.
 
-----
+---
 
 For easy runtime verification I've also provided a testing Monobehaviour that lets you view and load scenes via buttons when in playmode:<br/>![][5]
 
@@ -66,10 +66,10 @@ For easy runtime verification I've also provided a testing Monobehaviour that le
   [5]: https://i.imgur.com/q2FQSES.png
 
 
-----
+---
 
 Acknowledgements
-================
+===
 
 - This Project was originally created as a [github gist by JohannesMP](https://gist.github.com/JohannesMP/ec7d3f0bcf167dab3d0d3bb480e0e07b) and then moved to this Github Repo
 - Special thanks to **[Starikcetin](https://github.com/starikcetin)** for contributing and continuing to maintain this project while I was unable to do so. Definitely check out their own implementation at **[Eflatun.SceneReference](https://github.com/starikcetin/Eflatun.SceneReference)**!
