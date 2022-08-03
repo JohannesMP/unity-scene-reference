@@ -1,3 +1,19 @@
+Disclaimer (2022)
+----------------
+
+This project is no longer being actively maintained, and should be considered archived.
+
+If you do find it useful you are absolutely encouraged to fork it and reach out so we can link to it here.
+
+Here are some relevant projects to check out:
+- **[Eflatun.SceneReference](https://github.com/starikcetin/Eflatun.SceneReference)** by *[starikcetin](https://github.com/starikcetin)*
+
+
+------------------------------
+
+<br />
+
+
 [![openupm](https://img.shields.io/npm/v/com.johannesmp.unityscenereference?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.johannesmp.unityscenereference/)
 
 This repository has UPM support. You can install this plugin to your project using [OpenUPM](https://openupm.com/packages/com.johannesmp.unityscenereference/):
@@ -5,8 +21,6 @@ This repository has UPM support. You can install this plugin to your project usi
 npm install -g openupm-cli
 openupm add com.johannesmp.unityscenereference
 ```
-
-Original author is [JohannesMP](https://gist.github.com/JohannesMP/ec7d3f0bcf167dab3d0d3bb480e0e07b). Give them some love for creating this amazing plugin.
 
 ----
 
@@ -50,3 +64,13 @@ For easy runtime verification I've also provided a testing Monobehaviour that le
   [3]: https://i.imgur.com/BQLHrUt.png
   [4]: https://i.imgur.com/Mu4ISTp.png
   [5]: https://i.imgur.com/q2FQSES.png
+
+
+----
+
+Acknowledgements
+================
+
+- This Project was originally created as a [github gist by JohannesMP](https://gist.github.com/JohannesMP/ec7d3f0bcf167dab3d0d3bb480e0e07b) and then moved to this Github Repo
+- Special thanks to **[Starikcetin](https://github.com/starikcetin)** for contributing and continuing to maintain this project while I was unable to do so. Definitely check out their own implementation at **[Eflatun.SceneReference](https://github.com/starikcetin/Eflatun.SceneReference)**!
+- Thank you also for contributions from **[der-hugo](https://github.com/der-hugo)** and **[hbollon](https://github.com/hbollon)**
