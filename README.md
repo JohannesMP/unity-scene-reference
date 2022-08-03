@@ -3,7 +3,7 @@ Disclaimer (2022)
 
 This project is no longer being actively maintained, and should be considered archived.
 
-If you do find it useful you are absolutely encouraged to fork it and reach out so we can link to it here.
+If you do find it useful you are absolutely encouraged to fork it and feel free to reach out so your work can be linked to from here.
 
 Here are some relevant projects to check out:
 - **[Eflatun.SceneReference](https://github.com/starikcetin/Eflatun.SceneReference)** by *[starikcetin](https://github.com/starikcetin)*
