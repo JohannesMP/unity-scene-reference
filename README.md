@@ -73,4 +73,4 @@ Acknowledgements
 
 - This Project was originally created as a [github gist by JohannesMP](https://gist.github.com/JohannesMP/ec7d3f0bcf167dab3d0d3bb480e0e07b) and then moved to this Github Repo
 - Special thanks to **[Starikcetin](https://github.com/starikcetin)** for contributing and continuing to maintain this project while I was unable to do so. Definitely check out their own implementation at **[Eflatun.SceneReference](https://github.com/starikcetin/Eflatun.SceneReference)**!
-- Thank you also for contributions from **[der-hugo](https://github.com/der-hugo)** and **[hbollon](https://github.com/hbollon)**
+- Thank you also for contributions from **[der-hugo](https://github.com/der-hugo)**, **[hbollon](https://github.com/hbollon)**, **[joaoborks](https://github.com/joaoborks)** and **[NibbleByte](https://github.com/NibbleByte)**
